@@ -10,61 +10,27 @@ module.exports.config = {
   }
 };
 
-const axios = require('axios');
-const { createCanvas, loadImage, registerFont } = require('canvas');
-const fs = require('fs-extra');
-const path = require('path');
-const jimp = require("jimp");
-
-let backgrounds = [
-  "https://i.imgur.com/MnAwD8U.jpg",
-  "https://i.imgur.com/tSkuyIu.jpg"
-];
-let fontlink = 'https://drive.google.com/u/0/uc?id=1ZwFqYB-x6S9MjPfYm3t3SP1joohGl4iw&export=download';
-
 module.exports.run = async function({ api, event, Users, Threads }) {
-  const leftParticipantFbId = event.logMessageData.leftParticipantFbId;
-  const name = global.data.userName.get(leftParticipantFbId) || await Users.getNameUser(leftParticipantFbId);
-  const type = (event.author == leftParticipantFbId) ? "left by itself" : "been kicked by the administrator";
-  const Yan = (event.author == leftParticipantFbId) ? "left by itself" : "has been kicked by the administrator";
+  if (event.logMessageData.leftParticipantFbId == api.getCurrentUserID()) return;
+  const { createReadStream, existsSync, mkdirSync } = global.nodemodule["fs-extra"];
+  const { join } =  global.nodemodule["path"];
+  const axios = global.nodemodule["axios"];
+    const request = global.nodemodule["request"];
+    const fs = global.nodemodule["fs-extra"];
+  const { threadID } = event;
+  const data = global.data.threadData.get(parseInt(threadID)) || (await Threads.getData(threadID)).data;
+  const name = global.data.userName.get(event.logMessageData.leftParticipantFbId) || await Users.getNameUser(event.logMessageData.leftParticipantFbId);
+  const type = (event.author == event.logMessageData.leftParticipantFbId) ? "𝙻𝚎𝚏𝚝 𝚝𝚑𝚎 𝚐𝚛𝚘𝚞𝚙 😫" : "\n𝙰𝚛𝚎 𝚔𝚒𝚌𝚔𝚎𝚍 𝚋𝚢 𝙰𝚍𝚖𝚒𝚗 𝚖𝚊𝚢𝚋𝚎 𝚢𝚘𝚞 𝚜𝚝𝚞𝚙𝚒𝚍 🥴";
+  (typeof data.customLeave == "undefined") ? msg = `🥺 𝙶𝚘𝚘𝚍𝚋𝚢𝚎 ${name}🙂 𝙱𝚞𝚝 𝚒 𝚖𝚒𝚜𝚜 𝚢𝚘𝚞 𝚊𝚕𝚕 𝚝𝚒𝚖𝚎 𝚠𝚑𝚢 𝚢𝚘𝚞 𝚕𝚎𝚏𝚝 𝚖𝚎? 🥺!\n\n 𝚈𝚘𝚞  ${type} 🙀 «` : msg = data.customLeave;
+  msg = msg.replace(/\name}/g, name).replace(/\type}/g, type);
 
-  let fontPath = path.join(__dirname, "cache", "font.ttf");
-  let font = (await axios.get(fontlink, { responseType: 'arraybuffer' })).data;
-  fs.writeFileSync(fontPath, font);
-  registerFont(fontPath, { family: 'CustomFont' });
-
-  let randomBackground = backgrounds[Math.floor(Math.random() * backgrounds.length)];
-  let background = await loadImage(randomBackground);
-
-  let avatarUrl = `https://graph.facebook.com/${leftParticipantFbId}/picture?height=720&width=720&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`;
-  let avatarPath = path.join(__dirname, "cache/leave/leave.png");
-  let avatarData = (await axios.get(avatarUrl, { responseType: 'arraybuffer' })).data;
-  fs.writeFileSync(avatarPath, avatarData);
-  let avatar = await jimp.read(avatarPath);
-  avatar.circle();
-  let roundAvatar = await avatar.getBufferAsync('image/png');
-  let roundAvatarImg = await loadImage(roundAvatar);
-
-  const canvas = createCanvas(1280, 720);
-  const ctx = canvas.getContext('2d');
-  const yandeva = name.length > 10 ? name.slice(0, 10) + "..." : name;
-
-  ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
-  ctx.drawImage(roundAvatarImg, canvas.width / 2 - 500, canvas.height / 2 - 200, 420, 420);
-  ctx.font = '100px CustomFont';
-  ctx.fillStyle = '#FFF';
-  ctx.fillText(yandeva, canvas.width / 2 - 60, canvas.height / 2 + 90);
-
-  ctx.font = '40px CustomFont';
-  ctx.fillText(Yan, canvas.width / 2 - 50, canvas.height / 2 + 140);
-
-  let finalImage = canvas.toBuffer();
-  fs.writeFileSync(path.join(__dirname, 'cache/leave/leave.png'), finalImage);
-
-  const formPush = {
-    body: `💥${name} has ${type} from the group`,
-    attachment: fs.createReadStream(path.join(__dirname, 'cache/leave/leave.png'))
-  };
-
-  return api.sendMessage(formPush, event.threadID);
+  var link = [  
+"https://i.imgur.com/1AqInaf.gif",
+"https://i.imgur.com/9GtlnAJ.gif",
+"https://i.imgur.com/QyNXpjw.gif",
+"https://i.imgur.com/WMjN5xw.gif",
+"",
+  ];
+  var callback = () => api.sendMessage({ body: msg, attachment: fs.createReadStream(__dirname + "/cache/randomly.gif")}, event.threadID, () => fs.unlinkSync(__dirname + "/cache/randomly.gif"));
+    return request(encodeURI(link[Math.floor(Math.random() * link.length)])).pipe(fs.createWriteStream(__dirname + "/cache/randomly.gif")).on("close", () => callback());
 }
